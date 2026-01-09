@@ -16,7 +16,7 @@ import (
 type (
 	inParams struct {
 		fx.In
-		AppConfig *config.AppConfig
+		AppConfig *AppConfig
 		Logger    *zap.Logger
 		Client    *clientv3.Client
 	}
