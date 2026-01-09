@@ -1,8 +1,8 @@
 package config
 
 import (
+	"github.com/risy007/kmyh-config/local"
 	"go.uber.org/fx"
-	"kmyh-config/local"
 )
 
 var Module = fx.Options(

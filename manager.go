@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/risy007/kmyh-config/local"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"kmyh-config/local"
 	"sync"
 )
 

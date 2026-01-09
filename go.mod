@@ -1,4 +1,4 @@
-module kmyh-config
+module github.com/risy007/kmyh-config
 
 go 1.24.11
 
