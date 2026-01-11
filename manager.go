@@ -4,27 +4,30 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
-	"github.com/risy007/kmyh-config/local"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"strconv"
+	"strings"
 	"sync"
 )
 
 type (
+	// inParams 依赖注入参数
 	inParams struct {
 		fx.In
 		AppConfig *AppConfig
 		Logger    *zap.Logger
 		Client    *clientv3.Client
 	}
-	// ConfigManager 配置管理器
+	// ConfigManager 分布式配置管理器
+	// 提供动态配置加载、监听和管理功能
 	ConfigManager struct {
 		client *clientv3.Client
 		logger *zap.SugaredLogger
-		cfg    config.EtcdConfig
+		cfg    EtcdConfig
 		groups map[string]ConfigGroup
 		mu     sync.RWMutex
 	}
@@ -126,12 +129,19 @@ func (m *ConfigManager) Stop(ctx context.Context) error {
 }
 
 // ConfigGroup 配置组接口
+// 提供统一的配置访问方法，支持动态更新
 type ConfigGroup interface {
+	// Get 获取指定键的原始值
 	Get(key string) interface{}
+	// GetString 获取字符串类型的配置值
 	GetString(key string) string
+	// GetInt 获取整数类型的配置值
 	GetInt(key string) int
+	// GetBool 获取布尔类型的配置值
 	GetBool(key string) bool
+	// Unmarshal 将配置反序列化到目标对象
 	Unmarshal(obj interface{}) error
+	// OnChange 注册配置变更回调函数
 	OnChange(fn func())
 }
 
@@ -153,17 +163,70 @@ func (g *etcdConfigGroup) Get(key string) interface{} {
 
 // GetString 获取字符串
 func (g *etcdConfigGroup) GetString(key string) string {
-	return g.Get(key).(string)
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if val := g.viper.Get(key); val != nil {
+		if str, ok := val.(string); ok {
+			return str
+		}
+		// 尝试将其他类型转换为字符串
+		return fmt.Sprintf("%v", val)
+	}
+	return ""
 }
 
 // GetInt 获取整数
 func (g *etcdConfigGroup) GetInt(key string) int {
-	return g.Get(key).(int)
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if val := g.viper.Get(key); val != nil {
+		switch v := val.(type) {
+		case int:
+			return v
+		case int64:
+			return int(v)
+		case int32:
+			return int(v)
+		case float64:
+			return int(v)
+		case float32:
+			return int(v)
+		case string:
+			// 尝试解析字符串为整数
+			if i, err := strconv.Atoi(v); err == nil {
+				return i
+			}
+		}
+	}
+	return 0
 }
 
 // GetBool 获取布尔值
 func (g *etcdConfigGroup) GetBool(key string) bool {
-	return g.Get(key).(bool)
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if val := g.viper.Get(key); val != nil {
+		switch v := val.(type) {
+		case bool:
+			return v
+		case int:
+			return v != 0
+		case int64:
+			return v != 0
+		case string:
+			// 尝试解析字符串为布尔值
+			if b, err := strconv.ParseBool(v); err == nil {
+				return b
+			}
+			// 处理常见的真值字符串
+			lower := strings.ToLower(v)
+			return lower == "true" || lower == "1" || lower == "yes" || lower == "on"
+		}
+	}
+	return false
 }
 
 // Unmarshal 反序列化到结构体

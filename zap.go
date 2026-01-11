@@ -1,7 +1,6 @@
-package pkg
+package config
 
 import (
-	"github.com/risy007/kmyh-config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -13,7 +12,10 @@ import (
 
 const TimeFormat = "2006-01-02 15:04:05"
 
-func NewZapLogger(conf *config.AppConfig) *zap.Logger {
+// NewZapLogger 根据日志配置创建Zap日志记录器
+// 支持多种输出格式（JSON/控制台）和分级日志输出
+// 返回配置好的日志记录器实例
+func NewZapLogger(logCfg LogConfig) *zap.Logger {
 	var options []zap.Option
 	var encoder zapcore.Encoder
 
@@ -32,40 +34,36 @@ func NewZapLogger(conf *config.AppConfig) *zap.Logger {
 		EncodeTime:     localTimeEncoder,
 	}
 
-	if conf.Logger.Format == "json" {
+	if logCfg.Format == "json" {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	} else {
 		encoder = zapcore.NewConsoleEncoder(encoderConfig)
 	}
 
-	//level := zap.NewAtomicLevelAt(toLevel(conf.Log.Level))
-	//core := zapcore.NewCore(encoder, toWriter(conf), level)
-
 	debugLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl == zapcore.DebugLevel
 	})
-	debugCore := zapcore.NewCore(encoder, toWriter(conf.Logger.Directory, "debug"), debugLevel)
+	debugCore := zapcore.NewCore(encoder, toWriter(logCfg.Directory, "debug"), debugLevel)
 
 	infoLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl == zapcore.InfoLevel
 	})
-	infoCore := zapcore.NewCore(encoder, toWriter(conf.Logger.Directory, "info"), infoLevel)
+	infoCore := zapcore.NewCore(encoder, toWriter(logCfg.Directory, "info"), infoLevel)
 
 	warnLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl == zapcore.WarnLevel
 	})
-	warnCore := zapcore.NewCore(encoder, toWriter(conf.Logger.Directory, "warn"), warnLevel)
+	warnCore := zapcore.NewCore(encoder, toWriter(logCfg.Directory, "warn"), warnLevel)
 
 	errorLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
 		return lvl >= zapcore.ErrorLevel
 	})
-	errorCore := zapcore.NewCore(encoder, toWriter(conf.Logger.Directory, "error"), errorLevel)
+	errorCore := zapcore.NewCore(encoder, toWriter(logCfg.Directory, "error"), errorLevel)
 
 	stackLevel := zap.NewAtomicLevel()
 	stackLevel.SetLevel(zap.ErrorLevel)
 
 	options = append(options,
-		//zap.AddCaller(),
 		zap.AddCallerSkip(1),
 		zap.AddStacktrace(stackLevel),
 	)

@@ -1,9 +1,7 @@
-package pkg
+package config
 
 import (
 	"crypto/tls"
-	"github.com/risy007/kmyh-config"
-	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"time"
 
@@ -11,22 +9,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type etcdClientParams struct {
-	fx.In
-	AppConfig *config.AppConfig
-	Logger    *zap.Logger
-}
-
-// NewEtcdClient 创建 etcd 客户端（fx 提供者）
-func NewEtcdClient(in etcdClientParams) (*clientv3.Client, error) {
-	cfg := in.AppConfig.Etcd
-	log := in.Logger.With(zap.Namespace("[etcd client]")).Sugar()
+// NewEtcdClient 根据提供的配置创建etcd客户端
+// 该函数会配置连接参数、认证信息和TLS设置
+// 返回创建的客户端实例和可能的错误
+func NewEtcdClient(cfg EtcdConfig, logger *zap.Logger) (*clientv3.Client, error) {
+	log := logger.With(zap.Namespace("[etcd client]")).Sugar()
 	etcConf := clientv3.Config{
 		Endpoints:   cfg.Endpoints,
 		DialTimeout: cfg.DialTimeout,
 		Username:    cfg.Username,
 		Password:    cfg.Password,
-		// 关键配置 2：使用 grpc.WithBlock() 确保连接建立[^50^]
+		// 关键配置 2：使用 grpc.WithBlock() 确保连接建立
 		DialOptions: []grpc.DialOption{
 			grpc.WithBlock(),
 			grpc.WithBackoffMaxDelay(3 * time.Second), // 重试间隔
