@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	// 示例：模拟配置加载
+	// 加载应用配置
 	appConfig, err := config.NewAppConfig()
 	if err != nil {
 		log.Printf("Warning: Could not load config: %v", err)
@@ -29,6 +29,19 @@ func main() {
 		}
 	}
 
+	// 创建日志记录器
+	logger := config.NewZapLogger(appConfig.Logger)
+
+	// 创建etcd客户端
+	etcdClient, err := config.NewEtcdClient(appConfig.Etcd, logger)
+	if err != nil {
+		log.Fatalf("Failed to create etcd client: %v", err)
+	}
+	defer etcdClient.Close()
+
+	// 创建 ConfigManager
+	configManager := config.NewConfigManagerDirect(etcdClient, logger, appConfig)
+
 	fmt.Printf("App Name: %s\n", appConfig.AppName)
 	fmt.Printf("Environment: %s\n", appConfig.Env)
 
@@ -47,4 +60,12 @@ func main() {
 	fmt.Println("- HttpConfig -> http")
 	fmt.Println("- DifyConfig -> dify")
 	fmt.Println("- AppConfig -> app")
+
+	// 实际使用示例（需要etcd中有对应配置才能成功）
+	dbConfig, err := config.GetConfig[config.DatabaseConfig](configManager, appConfig.AppName, appConfig.Env)
+	if err != nil {
+		fmt.Printf("Could not load database config (expected if etcd not running): %v\n", err)
+	} else {
+		fmt.Printf("Database config loaded: %+v\n", dbConfig)
+	}
 }

@@ -9,6 +9,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,6 +40,18 @@ func NewConfigManager(in inParams) *ConfigManager {
 	cfg := in.AppConfig.Etcd
 	return &ConfigManager{
 		client: in.Client,
+		logger: log,
+		groups: make(map[string]ConfigGroup),
+		cfg:    cfg,
+	}
+}
+
+// NewConfigManagerDirect 创建配置管理器（直接参数）
+func NewConfigManagerDirect(client *clientv3.Client, logger *zap.Logger, appConfig *AppConfig) *ConfigManager {
+	log := logger.With(zap.Namespace("[ConfigManager]")).Sugar()
+	cfg := appConfig.Etcd
+	return &ConfigManager{
+		client: client,
 		logger: log,
 		groups: make(map[string]ConfigGroup),
 		cfg:    cfg,
@@ -126,6 +139,38 @@ func (m *ConfigManager) StartWatching() {
 func (m *ConfigManager) Stop(ctx context.Context) error {
 	m.logger.Info("配置管理器停止")
 	return m.client.Close()
+}
+
+// GetConfig 根据泛型类型自动获取配置
+// 规则：将结构体名称转为小写并移除末尾的 "config" 后缀
+func GetConfig[T any](m *ConfigManager, app, env string) (T, error) {
+	var config T
+
+	// 获取类型名称 - 使用零值来获取类型信息
+	typeOf := reflect.TypeOf((*T)(nil)).Elem()
+
+	// 获取基本类型（处理指针类型）
+	for typeOf.Kind() == reflect.Ptr {
+		typeOf = typeOf.Elem()
+	}
+
+	groupName := strings.ToLower(typeOf.Name())
+
+	// 如果名称以 "config" 结尾，则移除
+	if strings.HasSuffix(groupName, "config") {
+		groupName = groupName[:len(groupName)-6] // "config" 的长度是6
+	}
+
+	// 获取配置组
+	configGroup := m.GetGroup(app, env, groupName)
+
+	// 将配置反序列化到目标类型
+	err := configGroup.Unmarshal(&config)
+	if err != nil {
+		return config, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	return config, nil
 }
 
 // ConfigGroup 配置组接口
