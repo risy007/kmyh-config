@@ -4,12 +4,13 @@ import "fmt"
 
 // DifyConfig Dify AI平台配置
 type DifyConfig struct {
-	BaseURL       string `mapstructure:"base_url"`
-	APIKey        string `mapstructure:"api_key"`
-	CachePeriod   string `mapstructure:"cache_period"`
-	DefaultPrompt string `mapstructure:"default_prompt"`
-	BotType       string `mapstructure:"bot_type"`
-	WorkflowID    string `mapstructure:"workflow_id"`
+	BaseURL         string `mapstructure:"base_url"`
+	APIKey          string `mapstructure:"api_key"`
+	CachePeriod     string `mapstructure:"cache_period"`
+	DefaultPrompt   string `mapstructure:"default_prompt"`
+	BotType         string `mapstructure:"bot_type"`
+	WorkflowID      string `mapstructure:"workflow_id"`
+	HandleWorkwxMsg bool   `mapstructure:"handle_workwx_msg"`
 }
 
 // Validate 验证Dify配置

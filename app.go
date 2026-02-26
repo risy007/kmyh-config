@@ -11,6 +11,7 @@ type AppConfig struct {
 	Env     string     `mapstructure:"env"`
 	Etcd    EtcdConfig `mapstructure:"etcd"`
 	Logger  LogConfig  `mapstructure:"logger"`
+	FxNolog bool       `mapstructure:"fx_nolog"`
 }
 
 // Validate 验证配置的有效性
