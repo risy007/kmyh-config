@@ -11,6 +11,7 @@ type DifyConfig struct {
 	BotType         string `mapstructure:"bot_type"`
 	WorkflowID      string `mapstructure:"workflow_id"`
 	HandleWorkwxMsg bool   `mapstructure:"handle_workwx_msg"`
+	NotifyUsers     string `mapstructure:"notify_users"`
 }
 
 // Validate 验证Dify配置

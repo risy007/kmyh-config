@@ -60,10 +60,11 @@ func NewConfigManagerDirect(client *clientv3.Client, logger *zap.Logger, appConf
 
 // GetGroup 获取配置组（不存在则创建）
 func (m *ConfigManager) GetGroup(app, env, group string) ConfigGroup {
-	key := fmt.Sprintf("%s/%s/%s/%s/content.yaml", m.cfg.Prefix, app, env, group)
+	groupKey := fmt.Sprintf("%s/%s/%s/%s", m.cfg.Prefix, app, env, group)
+	configKey := groupKey + "/content.yaml"
 
 	m.mu.RLock()
-	if g, exists := m.groups[key]; exists {
+	if g, exists := m.groups[groupKey]; exists {
 		m.mu.RUnlock()
 		return g
 	}
@@ -75,26 +76,26 @@ func (m *ConfigManager) GetGroup(app, env, group string) ConfigGroup {
 
 	// 添加 etcd 远程提供者
 	if err := v.AddRemoteProvider("etcd3",
-		m.client.Endpoints()[0], key); err != nil {
+		m.client.Endpoints()[0], configKey); err != nil {
 		m.logger.Fatal("添加远程提供者失败", zap.Error(err))
 	}
 
 	// 初始读取
 	if err := v.ReadRemoteConfig(); err != nil {
 		m.logger.Warn("读取远程配置失败，使用空配置",
-			zap.String("key", key), zap.Error(err))
+			zap.String("key", configKey), zap.Error(err))
 	}
 
 	g := &etcdConfigGroup{
 		viper:    v,
-		logger:   m.logger.With(zap.String("group", key)),
-		groupKey: key,
+		logger:   m.logger.With(zap.String("group", groupKey)),
+		groupKey: groupKey,
 		watchers: []func(){},
 	}
 
 	// 注册到管理器
 	m.mu.Lock()
-	m.groups[key] = g
+	m.groups[groupKey] = g
 	m.mu.Unlock()
 
 	// 启动该配置组的动态监听

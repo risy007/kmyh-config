@@ -8,6 +8,7 @@ type OpenclawConfig struct {
 	Model           string `mapstructure:"model"`
 	CachePeriod     string `mapstructure:"cache_period"`
 	HandleWorkwxMsg bool   `mapstructure:"handle_workwx_msg"`
+	NotifyUsers     string `mapstructure:"notify_users"`
 }
 
 func (cfg *OpenclawConfig) Validate() error {
