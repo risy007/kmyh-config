@@ -1,0 +1,11 @@
+name: test-app
+env: dev
+etcd:
+  endpoints:
+    - localhost:2379
+  dial_timeout: 5s
+  prefix: /config
+logger:
+  level: info
+  format: json
+  directory: ./logs
