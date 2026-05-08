@@ -20,6 +20,12 @@ type EtcdConfig struct {
 	TLS *TLSConfig `yaml:"tls,omitempty" mapstructure:"tls"`
 	// Prefix 配置键的前缀
 	Prefix string `yaml:"prefix" mapstructure:"prefix" description:"键前缀"`
+	// MicroService NATS微服务配置
+	MicroService MicroServiceConfig `yaml:"micro_service" mapstructure:"micro_service"`
+}
+
+type MicroServiceConfig struct {
+	Enabled bool `yaml:"enabled" mapstructure:"enabled"`
 }
 
 // Validate 验证etcd配置
