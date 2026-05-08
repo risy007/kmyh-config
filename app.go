@@ -13,7 +13,6 @@ type AppConfig struct {
 	Env          string     `mapstructure:"env"`
 	InstanceMode string     `mapstructure:"instance_mode"`
 	Etcd         EtcdConfig `mapstructure:"etcd"`
-	Nats         NatsConfig `mapstructure:"nats"`
 	Logger       LogConfig  `mapstructure:"logger"`
 	FxNolog      bool       `mapstructure:"fx_nolog"`
 }

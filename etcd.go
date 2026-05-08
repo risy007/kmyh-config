@@ -1,10 +1,7 @@
 package config
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
@@ -45,11 +42,7 @@ func NewEtcdClient(cfg EtcdConfig, logger *zap.Logger) (*clientv3.Client, error)
 		serverName := extractHostFromEndpoint(cfg.Endpoints[0])
 		log.Info("使用 ServerName 进行 TLS 验证", zap.String("server_name", serverName))
 
-		tlsCfg := cfg.TLS
-		if tlsCfg == nil {
-			tlsCfg = &TLSConfig{}
-		}
-		tlsConfig, err := createTLSConfig(tlsCfg, serverName)
+		tlsConfig, err := createTLSConfig(cfg.TLS, serverName)
 		if err != nil {
 			log.Error("创建 TLS 配置失败", zap.Error(err))
 			return nil, fmt.Errorf("failed to create TLS config: %w", err)
@@ -73,45 +66,6 @@ func NewEtcdClient(cfg EtcdConfig, logger *zap.Logger) (*clientv3.Client, error)
 	log.Info("etcd 客户端连接成功",
 		zap.Strings("endpoints", cfg.Endpoints))
 	return client, nil
-}
-
-// createTLSConfig 根据 TLS 配置创建 tls.Config
-func createTLSConfig(cfg *TLSConfig, serverName string) (*tls.Config, error) {
-	caCert := embeddedCA
-	if cfg.CAFile != "" {
-		data, err := ioutil.ReadFile(cfg.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read CA file: %w", err)
-		}
-		caCert = data
-	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("failed to parse CA certificate")
-	}
-
-	tlsConfig := &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS12,
-		ServerName: serverName,
-	}
-
-	if cfg.CertFile != "" && cfg.KeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load client certificate: %w", err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	} else if len(embeddedClientCert) > 0 && len(embeddedClientKey) > 0 {
-		cert, err := tls.X509KeyPair(embeddedClientCert, embeddedClientKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load embedded client certificate: %w", err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-	}
-
-	return tlsConfig, nil
 }
 
 // extractHostFromEndpoint 从 etcd endpoint URL 中提取主机名

@@ -1,1 +1,7 @@
 certs/
+.idea/
+*.log
+logs/
+config.yaml
+go.work
+go.work.sum

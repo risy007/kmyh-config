@@ -1,1 +1,0 @@
-{"level":"\u001b[31mERROR\u001b[0m","ts":"2026-01-13 10:37:56","msg":"创建 etcd 客户端失败{error 26 0  context deadline exceeded}","[etcd client]":{},"stacktrace":"main.main\n\t/home/kmyh/yh-projects/kmyh-config/example/usage_example.go:36\nruntime.main\n\t/home/kmyh/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.11.linux-amd64/src/runtime/proc.go:283"}
