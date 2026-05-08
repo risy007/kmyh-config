@@ -6,9 +6,10 @@ import (
 
 // HttpConfig HTTP服务配置
 type HttpConfig struct {
-	Host   string `mapstructure:"host" description:"监听地址"`
-	Port   int    `mapstructure:"port" description:"端口号"`
-	Prefix string `mapstructure:"prefix" description:"路由前缀"`
+	Host        string `mapstructure:"host" description:"监听地址"`
+	Port        int    `mapstructure:"port" description:"端口号"`
+	Prefix      string `mapstructure:"prefix" description:"路由前缀"`
+	ExternalURL string `mapstructure:"external_url" description:"外部访问地址"`
 }
 
 // ListenAddr 返回监听地址

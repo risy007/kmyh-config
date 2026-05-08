@@ -40,17 +40,25 @@ func (c *AgentConfig) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// CustomerBindInfo 客户绑定信息 — 与架构文档 06-data-models.md §7.1 保持一致
 type CustomerBindInfo struct {
-	TenantID      string `json:"tenant_id"`
-	UnifiedUserID string `json:"unified_user_id"`
-	AgentID       string `json:"agent_id"`
-	BaseURL       string `json:"base_url"`
-	APIKey        string `json:"api_key"`
+	TenantID      string            `json:"tenant_id"`
+	TenantSlug    string            `json:"tenant_slug"`
+	UnifiedUserID string            `json:"unified_user_id"`
+	ChannelType   string            `json:"channel_type"`
+	ChannelUserID string            `json:"channel_user_id"`
+	AgentID       string            `json:"agent_id"`
+	AgentType     string            `json:"agent_type"` // goclaw/dify
+	AgentConfig   *AgentConfig      `json:"agent_config,omitempty"`
+	BaseURL       string            `json:"base_url"`
+	APIKey        string            `json:"api_key"`
+	Extra         map[string]string `json:"extra,omitempty"`
 }
 
 type GetCustomerBindInfoRequest struct {
 	Channel       string `json:"channel"`
 	ChannelUserID string `json:"channel_user_id"`
+	TenantSlug    string `json:"tenant_slug,omitempty"` // 网关直接提供租户标识，减少反查开销
 }
 
 type GetCustomerBindInfoResponse struct {

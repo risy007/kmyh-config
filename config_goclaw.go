@@ -17,10 +17,10 @@ func (cfg *GoclawAdminConfig) Validate() error {
 }
 
 type GoclawBotConfig struct {
-	UserID  string `mapstructure:"user_id"`  // 用户唯一标识，用于路由
-	BaseURL string `mapstructure:"base_url"` // GoClaw WebSocket 地址 (ws://host:port)
-	APIKey  string `mapstructure:"api_key"`  // GoClaw Token
-	AgentID string `mapstructure:"agent_id"` // 目标 Agent ID
+	UserID  string `mapstructure:"user_id" json:"user_id"`    // 用户唯一标识，用于路由
+	BaseURL string `mapstructure:"base_url" json:"base_url"`  // GoClaw WebSocket 地址 (ws://host:port)
+	APIKey  string `mapstructure:"api_key" json:"api_key"`    // GoClaw Token
+	AgentID string `mapstructure:"agent_id" json:"agent_id"`  // 目标 Agent ID
 }
 
 type GoclawConfig struct {
