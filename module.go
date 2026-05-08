@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/nats-io/nats.go"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -44,15 +43,4 @@ func newEtcdClientFromAppConfig(cfg *AppConfig, logger *zap.Logger) (*clientv3.C
 	return NewEtcdClient(cfg.Etcd, logger)
 }
 
-// NewNatsModule 创建NATS连接FX模块
-// 使用 AppConfig.AppName 作为客户端名称
-// 使用方式: fx.Options(config.NewConfigModule(), config.NewNatsModule())
-func NewNatsModule() fx.Option {
-	return fx.Options(
-		fx.Provide(newNatsConnectionFromAppConfig),
-	)
-}
 
-func newNatsConnectionFromAppConfig(cfg *AppConfig, logger *zap.Logger) (*nats.Conn, error) {
-	return NewNatsConnection(cfg.Nats, cfg.AppName, logger)
-}
