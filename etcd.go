@@ -40,18 +40,21 @@ func NewEtcdClient(cfg EtcdConfig, logger *zap.Logger) (*clientv3.Client, error)
 		DialKeepAliveTimeout: 5 * time.Second,
 	}
 
-	if cfg.TLS != nil {
-		// 从第一个 endpoint 提取主机名作为 ServerName
+	needTLS := cfg.TLS != nil || len(embeddedCA) > 0 && hasTLSEndpoint(cfg.Endpoints)
+	if needTLS {
 		serverName := extractHostFromEndpoint(cfg.Endpoints[0])
 		log.Info("使用 ServerName 进行 TLS 验证", zap.String("server_name", serverName))
 
-		tlsConfig, err := createTLSConfig(cfg.TLS, serverName)
+		tlsCfg := cfg.TLS
+		if tlsCfg == nil {
+			tlsCfg = &TLSConfig{}
+		}
+		tlsConfig, err := createTLSConfig(tlsCfg, serverName)
 		if err != nil {
 			log.Error("创建 TLS 配置失败", zap.Error(err))
 			return nil, fmt.Errorf("failed to create TLS config: %w", err)
 		}
 		etcConf.TLS = tlsConfig
-		// 使用 grpc credentials 包装 TLS 配置
 		creds := credentials.NewTLS(tlsConfig)
 		etcConf.DialOptions = append(etcConf.DialOptions, grpc.WithTransportCredentials(creds))
 		log.Info("已启用 TLS 加密连接")
@@ -74,17 +77,15 @@ func NewEtcdClient(cfg EtcdConfig, logger *zap.Logger) (*clientv3.Client, error)
 
 // createTLSConfig 根据 TLS 配置创建 tls.Config
 func createTLSConfig(cfg *TLSConfig, serverName string) (*tls.Config, error) {
-	if cfg.CAFile == "" {
-		return nil, fmt.Errorf("CA file is required for TLS")
+	caCert := embeddedCA
+	if cfg.CAFile != "" {
+		data, err := ioutil.ReadFile(cfg.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA file: %w", err)
+		}
+		caCert = data
 	}
 
-	// 加载 CA 证书
-	caCert, err := ioutil.ReadFile(cfg.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CA file: %w", err)
-	}
-
-	// 创建证书池
 	caCertPool := x509.NewCertPool()
 	if !caCertPool.AppendCertsFromPEM(caCert) {
 		return nil, fmt.Errorf("failed to parse CA certificate")
@@ -93,14 +94,19 @@ func createTLSConfig(cfg *TLSConfig, serverName string) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		RootCAs:    caCertPool,
 		MinVersion: tls.VersionTLS12,
-		ServerName: serverName, // 使用 endpoint 主机名进行证书验证
+		ServerName: serverName,
 	}
 
-	// 如果有客户端证书，加载它
 	if cfg.CertFile != "" && cfg.KeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	} else if len(embeddedClientCert) > 0 && len(embeddedClientKey) > 0 {
+		cert, err := tls.X509KeyPair(embeddedClientCert, embeddedClientKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load embedded client certificate: %w", err)
 		}
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
@@ -111,24 +117,27 @@ func createTLSConfig(cfg *TLSConfig, serverName string) (*tls.Config, error) {
 // extractHostFromEndpoint 从 etcd endpoint URL 中提取主机名
 // 例如: https://172.18.0.194:2379 -> 172.18.0.194
 func extractHostFromEndpoint(endpoint string) string {
-	// 解析 URL
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		// 如果不是标准 URL 格式，尝试直接提取 host:port
 		if strings.Contains(endpoint, "://") {
 			parts := strings.SplitN(endpoint, "://", 2)
 			if len(parts) == 2 {
 				endpoint = parts[1]
 			}
 		}
-		// 移除端口
 		if idx := strings.LastIndex(endpoint, ":"); idx != -1 {
 			endpoint = endpoint[:idx]
 		}
 		return endpoint
 	}
+	return u.Hostname()
+}
 
-	// 从 Host 中移除端口
-	host := u.Hostname()
-	return host
+func hasTLSEndpoint(endpoints []string) bool {
+	for _, ep := range endpoints {
+		if strings.HasPrefix(ep, "https://") {
+			return true
+		}
+	}
+	return false
 }

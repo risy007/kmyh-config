@@ -2,16 +2,25 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/denisbrodbeck/machineid"
 	"github.com/spf13/viper"
 )
 
 // AppConfig 应用主配置
 type AppConfig struct {
-	AppName string     `mapstructure:"name"`
-	Env     string     `mapstructure:"env"`
-	Etcd    EtcdConfig `mapstructure:"etcd"`
-	Logger  LogConfig  `mapstructure:"logger"`
-	FxNolog bool       `mapstructure:"fx_nolog"`
+	AppName      string     `mapstructure:"name"`
+	Env          string     `mapstructure:"env"`
+	InstanceMode string     `mapstructure:"instance_mode"`
+	Etcd         EtcdConfig `mapstructure:"etcd"`
+	Nats         NatsConfig `mapstructure:"nats"`
+	Logger       LogConfig  `mapstructure:"logger"`
+	FxNolog      bool       `mapstructure:"fx_nolog"`
+}
+
+// ClientID 返回 clientID（appName@machineID[:8]），用于 etcd 路径和 NATS 连接标识
+func (cfg *AppConfig) ClientID() string {
+	return cfg.AppName
 }
 
 // Validate 验证配置的有效性
@@ -49,6 +58,16 @@ func NewAppConfig() (*AppConfig, error) {
 
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	if cfg.InstanceMode != "single" {
+		mid, err := machineid.ID()
+		if err != nil {
+			return nil, fmt.Errorf("failed to detect machine ID: %w", err)
+		}
+		if len(mid) >= 8 {
+			cfg.AppName = cfg.AppName + "@" + mid[:8]
+		}
 	}
 
 	return &cfg, nil
